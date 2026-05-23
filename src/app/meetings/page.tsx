@@ -29,25 +29,38 @@ export default function MeetingsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<MeetingFilter>("upcoming");
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useMeetings(filter);
+  const { data, isLoading, error } = useMeetings(filter);
   const deleteMeeting = useDeleteMeeting();
   const createMeeting = useCreateMeeting();
 
-  const meetings = (data?.items ?? []).filter(
+  const rawMeetings: any[] = Array.isArray(data) ? data : (data?.items ?? []);
+
+  const meetings = rawMeetings.filter(
     (m) =>
       !search ||
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.meetingId.includes(search)
+      m.title?.toLowerCase().includes(search.toLowerCase()) ||
+      m.meetingId?.includes(search)
   );
 
   const handleNewMeeting = async () => {
-    const m = await createMeeting.mutateAsync({
-      title: "Ketan Arora's Meeting",
-      type: "instant",
-      durationMinutes: 60,
-    });
-    router.push(`/room/${m.meetingId}`);
+    try {
+      const m = await createMeeting.mutateAsync({
+        title: "Ketan Arora's Meeting",
+        type: "instant",
+        durationMinutes: 60,
+      });
+      router.push(`/room/${m.meetingId}`);
+    } catch (e) {
+      console.error("Failed to create meeting", e);
+    }
   };
+
+  const emptyStateLabel =
+    filter === "upcoming"
+      ? { text: "No upcoming meetings", sub: "Schedule a meeting to see it here.", btn: "Schedule a Meeting", action: () => router.push("/schedule") }
+      : filter === "recent"
+      ? { text: "No recent meetings", sub: "Start a meeting to see it here.", btn: "Start a Meeting", action: handleNewMeeting }
+      : { text: "No meetings yet", sub: "Start or schedule your first meeting.", btn: "New Meeting", action: handleNewMeeting };
 
   return (
     <AppLayout>
@@ -98,7 +111,10 @@ export default function MeetingsPage() {
           {TABS.map((t) => (
             <button
               key={t.value}
-              onClick={() => setFilter(t.value)}
+              onClick={() => {
+                setFilter(t.value);
+                setSearch("");
+              }}
               className={[
                 "px-5 py-2.5 text-[14px] font-medium border-b-2 transition-colors -mb-px",
                 filter === t.value
@@ -117,32 +133,26 @@ export default function MeetingsPage() {
             <div className="flex items-center justify-center py-16">
               <Loader2 size={28} className="animate-spin text-[#0b6bde]" />
             </div>
+          ) : error ? (
+            <div className="py-16 text-center">
+              <p className="text-[14px] text-[#e03e3e] font-medium">Failed to load meetings.</p>
+              <p className="text-[12px] text-[#999] mt-1">Check your connection and try again.</p>
+            </div>
           ) : meetings.length === 0 ? (
             <div className="py-16 text-center">
               <Calendar size={44} className="text-[#ddd] mx-auto mb-4" />
               <p className="text-[15px] font-semibold text-[#555]">
-                No{" "}
-                {filter === "upcoming"
-                  ? "upcoming"
-                  : filter === "recent"
-                  ? "recent"
-                  : ""}{" "}
-                meetings
+                {emptyStateLabel.text}
               </p>
               <p className="text-[13px] text-[#999] mt-1">
-                {filter === "upcoming"
-                  ? "Schedule a meeting to see it here."
-                  : "Start a meeting to see it here."}
+                {emptyStateLabel.sub}
               </p>
               <button
-                onClick={() =>
-                  filter === "upcoming"
-                    ? router.push("/schedule")
-                    : handleNewMeeting()
-                }
-                className="mt-5 px-5 py-2 bg-[#0b6bde] text-white text-[13px] font-medium rounded-lg hover:bg-[#0047cc] transition-colors"
+                onClick={emptyStateLabel.action}
+                disabled={createMeeting.isPending}
+                className="mt-5 px-5 py-2 bg-[#0b6bde] text-white text-[13px] font-medium rounded-lg hover:bg-[#0047cc] transition-colors disabled:opacity-60"
               >
-                {filter === "upcoming" ? "Schedule a Meeting" : "Start a Meeting"}
+                {emptyStateLabel.btn}
               </button>
             </div>
           ) : (
@@ -168,10 +178,7 @@ export default function MeetingsPage() {
                         <span className="flex items-center gap-1 text-[12px] text-[#888]">
                           <Clock size={11} />
                           {m.scheduledAt
-                            ? format(
-                                new Date(m.scheduledAt),
-                                "MMM d, yyyy · h:mm a"
-                              )
+                            ? format(new Date(m.scheduledAt), "MMM d, yyyy · h:mm a")
                             : m.type === "instant"
                             ? "Instant meeting"
                             : "Scheduled"}
@@ -199,10 +206,9 @@ export default function MeetingsPage() {
                       </button>
                     )}
                     <button
-                      onClick={() =>
-                        deleteMeeting.mutate(m.meetingId)
-                      }
-                      className="p-2 text-[#999] hover:text-[#e03e3e] hover:bg-[#fff0f0] rounded-lg transition-colors"
+                      onClick={() => deleteMeeting.mutate(m.meetingId)}
+                      disabled={deleteMeeting.isPending}
+                      className="p-2 text-[#999] hover:text-[#e03e3e] hover:bg-[#fff0f0] rounded-lg transition-colors disabled:opacity-50"
                       title="Delete"
                     >
                       <Trash2 size={15} />
