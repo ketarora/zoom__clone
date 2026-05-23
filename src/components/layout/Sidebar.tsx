@@ -16,49 +16,46 @@ const mainItems: NavItem[] = [{ label: "Home", href: "/" }];
 
 const productItems: NavItem[] = [
   { label: "Meetings", href: "/meetings" },
-  { label: "Recordings", href: "#", badge: "Soon", disabled: true },
-  { label: "Hub", href: "#", badge: "Soon", disabled: true },
-  { label: "Whiteboards", href: "#", badge: "Soon", disabled: true },
-  { label: "Notes", href: "#", badge: "Soon", disabled: true },
-  { label: "Clips", href: "#", badge: "Soon", disabled: true },
-  { label: "Canvas", href: "#", badge: "Soon", disabled: true },
-  { label: "Tasks", href: "#", badge: "Soon", disabled: true },
-  { label: "Scheduler", href: "#", badge: "Soon", disabled: true },
+  { label: "Recordings", href: "/recordings" },
+  { label: "Hub", href: "/hub", badge: "New" },
+  { label: "Whiteboards", href: "/whiteboards", external: true },
+  { label: "Notes", href: "/notes" },
+  { label: "Clips", href: "/clips", external: true },
+  { label: "Canvas", href: "/canvas-board", external: true },
+  { label: "Tasks", href: "/tasks", external: true },
+  { label: "Scheduler", href: "/scheduler", external: true },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
-  const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+  const isActive =
+    item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
-  const content = (
-    <div
-      className={[
-        "flex items-center justify-between px-4 py-[5px] text-[14px] rounded-[12px] mx-1 transition-colors mb-[1px] select-none",
-        isActive && !item.disabled
-          ? "bg-[#eef5ff] text-[#0b6bde] font-semibold"
-          : item.disabled
-          ? "text-[#a0a0a0] cursor-not-allowed"
-          : "text-[#222325] hover:bg-[#e7e7eb] font-normal cursor-pointer",
-      ].join(" ")}
-      style={{ minHeight: "32px" }}
-    >
-      <span>{item.label}</span>
-      <div className="flex items-center gap-1">
-        {item.badge && (
-          <span className={`text-[11px] font-bold px-1.5 py-[2px] rounded-full leading-none ${item.badge === "Soon" ? "text-[#777] bg-[#f5f5f5] border border-[#e0e0e0]" : "text-[#0b6bde] bg-[#eef5ff] border border-[#bdd8ff]"}`}>
-            {item.badge}
-          </span>
-        )}
-        {item.external && !item.disabled && (
-          <ExternalLink size={13} className="text-[#aaa]" />
-        )}
+  return (
+    <Link href={item.href}>
+      <div
+        className={[
+          "flex items-center justify-between px-4 py-[5px] text-[14px] rounded-[12px] mx-1 cursor-pointer transition-colors mb-[1px] select-none",
+          isActive
+            ? "bg-[#eef5ff] text-[#0b6bde] font-semibold"
+            : "text-[#222325] hover:bg-[#e7e7eb] font-normal",
+        ].join(" ")}
+        style={{ minHeight: "32px" }}
+      >
+        <span>{item.label}</span>
+        <div className="flex items-center gap-1">
+          {item.badge && (
+            <span className="text-[11px] font-bold text-[#0b6bde] bg-[#eef5ff] border border-[#bdd8ff] px-1 rounded-full leading-none">
+              {item.badge}
+            </span>
+          )}
+          {item.external && (
+            <ExternalLink size={13} className="text-[#aaa]" />
+          )}
+        </div>
       </div>
-    </div>
+    </Link>
   );
-
-  // If disabled, just return the div (not clickable). If active, wrap in Next.js Link.
-  if (item.disabled) return content;
-  return <Link href={item.href}>{content}</Link>;
 }
 
 function ExpandItem({ label }: { label: string }) {
